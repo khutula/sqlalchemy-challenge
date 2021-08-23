@@ -83,6 +83,28 @@ def stns():
 
     return jsonify(stations_list)
 
+# create tobs route
+@app.route("/api/v1.0/tobs")
+def temps():
+
+    # create session 
+    session = Session(engine)
+
+    # query database for summed precipitation data
+    year_temps = session.query(Measurement.date, Measurement.tobs).filter(Measurement.date>='2016-08-23').filter(Measurement.station == 'USC00519281').all()
+
+    # create empty list
+    temps_list = []
+
+    # turn list of tuples into dictionary and add to list
+    for temp in year_temps:
+        temps_list.append(temp[1])
+
+    # close session
+    session.close()
+
+    return jsonify(stations_list)
+
 # run in debug mode
 if __name__ == "__main__":
     app.run(debug=True)
