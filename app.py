@@ -1,5 +1,7 @@
 # import dependencies
 from flask import Flask, jsonify
+import numpy as np
+from datetime import datetime, timedelta
 import sqlalchemy
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
@@ -21,17 +23,37 @@ Base.prepare(engine, reflect=True)
 Measurement = Base.classes.measurement
 Station = Base.classes.station
 
+# create session 
+session = Session(engine)
+
+# query database for last date
+last_date_str = session.query(Measurement.date).order_by(Measurement.date.desc()).first()[0]
+
+# calculate one year prior
+last_date = datetime.strptime(last_date_str, '%Y-%m-%d').date()
+year_prior = last_date - timedelta(days=365)
+year_prior_str = year_prior.strftime("%Y-%m-%d")
+
+# find most active station info
+most_active_station = session.query(Measurement.station, func.count(Measurement.station), Station.id).\
+    filter(Station.station==Measurement.station).\
+    group_by(Measurement.station).\
+    order_by(desc(func.count(Measurement.station))).first()
+
+# close session
+session.close()
 
 # create index route
 @app.route("/")
 def home():
+
     return (
         f"Available Routes:<br/>"
             f"/api/v1.0/precipitation<br/>"
             f"/api/v1.0/stations<br/>"
             f"/api/v1.0/tobs<br/>"
-            f"/api/v1.0/<start><br/>"
-            f"/api/v1.0/<start>/<end>"
+            f"Where 2016-08-23 represents a start date: /api/v1.0/2016-08-23<br/>"
+            f"Where 2010-01-01 represents a start date and 2017-08-23 represents an end date: /api/v1.0/2010-01-01/2017-08-23"
         )
 
 # create precipitation route
@@ -40,8 +62,11 @@ def prcp():
     # create session 
     session = Session(engine)
 
-    # query database for summed precipitation data
-    precip = session.query(Measurement.date, func.sum(Measurement.prcp)).filter(Measurement.prcp>=0).group_by(Measurement.date).all()
+    # query database for max precipitation data on given date
+    precip = session.query(Measurement.date, func.max(Measurement.prcp)).\
+        filter(Measurement.prcp>=0).\
+        filter(Measurement.date>=year_prior_str).\
+        group_by(Measurement.date).all()
 
     # create empty dict
     precip_dict = {}
@@ -61,7 +86,7 @@ def stns():
     # create session 
     session = Session(engine)
 
-    # query database for summed precipitation data
+    # query database for all stations
     stations = session.query(Station.station, Station.name, Station.id, Station.elevation, Station.longitude, Station.latitude).all()
 
     # create empty list
@@ -90,30 +115,29 @@ def temps():
     # create session 
     session = Session(engine)
 
-    # query database for summed precipitation data
-    year_temps = session.query(Measurement.date, Measurement.tobs).filter(Measurement.date>='2016-08-23').filter(Measurement.station == 'USC00519281').all()
+    # query database for temp data using most active station over last year
+    year_temps = session.query(Measurement.tobs).\
+        filter(Station.station==Measurement.station).\
+        filter(Measurement.date>=year_prior_str).\
+        filter(Station.id == most_active_station[2]).all()
 
     # create empty dictionary
-    temps_dict = {}
-
-    # turn list of tuples into dictionary
-    for temp in year_temps:
-        temps_dict[temp[0]] = temp[1]
+    temps_list = list(np.ravel(year_temps))
 
     # close session
     session.close()
 
-    return jsonify(temps_dict)
+    return jsonify(temps_list)
 
 # create date search route
 @app.route("/api/v1.0/<start>")
 @app.route("/api/v1.0/<start>/<end>")
-def date_search(start, end='2017-08-23'):
+def date_search(start, end=last_date_str):
 
     # create session 
     session = Session(engine)
 
-    # query database for summed precipitation data
+    # query database for temp calcualted data
     date_range = session.query(func.min(Measurement.tobs),func.max(Measurement.tobs),func.avg(Measurement.tobs)).\
         filter(Measurement.date >= start).\
         filter(Measurement.date <= end).\
@@ -124,8 +148,6 @@ def date_search(start, end='2017-08-23'):
 
     # turn list of tuples into dictionary
     for stat in date_range:
-        stats_dict["Start Date"] = start
-        stats_dict["End Date"] = end
         stats_dict["Min Temp"] = stat[0]
         stats_dict["Avg Temp"] = round(stat[2],2)
         stats_dict["Max Temp"] = stat[1]
