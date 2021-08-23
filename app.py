@@ -9,7 +9,7 @@ from sqlalchemy import create_engine, func, desc
 app = Flask(__name__)
 
 # Database Setup
-engine = create_engine("Resources/hawaii.sqlite")
+engine = create_engine("sqlite:///Resources/hawaii.sqlite")
 
 # reflect an existing database into a new model
 Base = automap_base()
@@ -37,7 +37,7 @@ def prcp():
     session = Session(engine)
 
     # query database for summed precipitation data
-    precip = session.query(Measurement.date, func.sum(Measurement.prcp)).filter(Measurement.prcp>0).group_by(Measurement.date).all()
+    precip = session.query(Measurement.date, func.sum(Measurement.prcp)).filter(Measurement.prcp>=0).group_by(Measurement.date).all()
 
     # create empty dict
     precip_dict = {}
