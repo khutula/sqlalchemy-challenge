@@ -27,10 +27,10 @@ Station = Base.classes.station
 def home():
     return (
         f"Available Routes:<br/>"
-            f"/api/v1.0/precipitation"
-            f"/api/v1.0/stations"
-            f"/api/v1.0/tobs"
-            f"/api/v1.0/<start>"
+            f"/api/v1.0/precipitation<br/>"
+            f"/api/v1.0/stations<br/>"
+            f"/api/v1.0/tobs<br/>"
+            f"/api/v1.0/<start><br/>"
             f"/api/v1.0/<start>/<end>"
         )
 
@@ -62,20 +62,20 @@ def stns():
     session = Session(engine)
 
     # query database for summed precipitation data
-    stations = session.query(Station).all()
+    stations = session.query(Station.station, Station.name, Station.id, Station.elevation, Station.longitude, Station.latitude).all()
 
     # create empty list
     stations_list = []
 
     # turn list of tuples into dictionary and add to list
-    for station in stations:
+    for entry in stations:
         station_dict = {}
-        station_dict["station"] = station[5]
-        station_dict["name"] = station[1]
-        station_dict["id"] = station[2]
-        station_dict["elevation"] = station[3]
-        station_dict["longitude"] = station[0]
-        station_dict["latitude"] = station[4]
+        station_dict["station"] = entry[5]
+        station_dict["name"] = entry[1]
+        station_dict["id"] = entry[2]
+        station_dict["elevation"] = entry[3]
+        station_dict["longitude"] = entry[0]
+        station_dict["latitude"] = entry[4]
         stations_list.append(station_dict)
 
     # close session
