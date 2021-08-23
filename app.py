@@ -105,6 +105,37 @@ def temps():
 
     return jsonify(temps_dict)
 
+# create date search route
+@app.route("/api/v1.0/<start>")
+@app.route("/api/v1.0/<start>/<end>")
+def date_search():
+
+    # create session 
+    session = Session(engine)
+
+    if end is empty:
+        end = '2017-08-23'
+
+    # query database for summed precipitation data
+    date_range = session.query(func.min(Measurement.tobs),func.max(Measurement.tobs),func.avg(Measurement.tobs)).\
+        filter(Measurement.date >= start).\
+        filter(Measurement.date <= end).\
+        all()
+
+    # create empty dictionary
+    stats_dict = {}
+
+    # turn list of tuples into dictionary
+    for stat in date_range:
+        stats_dict["Min Temp"] = stat[0]
+        stats_dict["Avg Temp"] = stat[2]
+        stats_dict["Max Temp"] = stat[1]
+
+    # close session
+    session.close()
+
+    return jsonify(stats_dict)
+
 # run in debug mode
 if __name__ == "__main__":
     app.run(debug=True)
