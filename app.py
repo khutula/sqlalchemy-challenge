@@ -108,13 +108,10 @@ def temps():
 # create date search route
 @app.route("/api/v1.0/<start>")
 @app.route("/api/v1.0/<start>/<end>")
-def date_search():
+def date_search(start, end='2017-08-23'):
 
     # create session 
     session = Session(engine)
-
-    if end is empty:
-        end = '2017-08-23'
 
     # query database for summed precipitation data
     date_range = session.query(func.min(Measurement.tobs),func.max(Measurement.tobs),func.avg(Measurement.tobs)).\
@@ -127,8 +124,10 @@ def date_search():
 
     # turn list of tuples into dictionary
     for stat in date_range:
+        stats_dict["Start Date"] = start
+        stats_dict["End Date"] = end
         stats_dict["Min Temp"] = stat[0]
-        stats_dict["Avg Temp"] = stat[2]
+        stats_dict["Avg Temp"] = round(stat[2],2)
         stats_dict["Max Temp"] = stat[1]
 
     # close session
