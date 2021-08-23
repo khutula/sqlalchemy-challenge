@@ -93,17 +93,17 @@ def temps():
     # query database for summed precipitation data
     year_temps = session.query(Measurement.date, Measurement.tobs).filter(Measurement.date>='2016-08-23').filter(Measurement.station == 'USC00519281').all()
 
-    # create empty list
-    temps_list = []
+    # create empty dictionary
+    temps_dict = {}
 
-    # turn list of tuples into dictionary and add to list
+    # turn list of tuples into dictionary
     for temp in year_temps:
-        temps_list.append(temp[1])
+        temps_dict[temp[0]] = temp[1]
 
     # close session
     session.close()
 
-    return jsonify(stations_list)
+    return jsonify(temps_dict)
 
 # run in debug mode
 if __name__ == "__main__":
