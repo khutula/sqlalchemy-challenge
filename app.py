@@ -62,18 +62,18 @@ def prcp():
     # create session 
     session = Session(engine)
 
-    # query database for max precipitation data on given date
-    precip = session.query(Measurement.date, func.max(Measurement.prcp)).\
+    # query database for precipitation data on given date
+    precip = session.query(Measurement.prcp, Measurement.date).\
         filter(Measurement.prcp>=0).\
-        filter(Measurement.date>=year_prior_str).\
-        group_by(Measurement.date).all()
+        filter(Measurement.date>=year_prior_str).all()
 
     # create empty dict
     precip_dict = {}
 
     # turn list of tuples into dictionary
     for entry in precip:
-        precip_dict[entry[0]] = round(entry[1],2)
+        if type(entry[0]) == float:
+            precip_dict[entry[1]] = precip_dict.get(entry[1], []) + [round(entry[0],2)]
 
     # close session
     session.close()
